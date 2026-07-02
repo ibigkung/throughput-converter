@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Throughput — Data Transfer &amp; Speed Converter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg:#0A0E14;
+    --panel:#0F1720;
+    --panel-2:#121B26;
+    --border:#1C2733;
+    --border-soft:#161F2A;
+    --accent:#5EEAD4;
+    --accent-dim:#2DD4BF;
+    --accent-glow:rgba(94,234,212,0.18);
+    --text:#F5F7FA;
+    --text-dim:#7C8B9A;
+    --text-faint:#4B5A68;
+    --warn:#FBBF24;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  html,body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  body{
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(94,234,212,0.05), transparent 40%),
+      radial-gradient(circle at 85% 100%, rgba(94,234,212,0.04), transparent 45%);
+    padding:32px 20px 80px;
+  }
+
+  .wrap{
+    max-width:920px;
+    margin:0 auto;
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:36px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .brand-mark{
+    width:10px;height:10px;
+    background:var(--accent);
+    border-radius:2px;
+    box-shadow:0 0 12px var(--accent-glow);
+    flex-shrink:0;
+  }
+
+  .brand-text h1{
+    font-size:15px;
+    font-weight:700;
+    letter-spacing:0.02em;
+  }
+
+  .brand-text p{
+    font-size:11px;
+    color:var(--text-faint);
+    font-family:var(--mono);
+    letter-spacing:0.03em;
+    margin-top:1px;
+  }
+
+  .clock{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--text-faint);
+    text-align:right;
+    letter-spacing:0.02em;
+  }
+
+  /* ---------- Mode tabs ---------- */
+  .tabs{
+    display:flex;
+    gap:2px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:3px;
+    margin-bottom:20px;
+  }
+
+  .tab{
+    flex:1;
+    text-align:center;
+    padding:10px 12px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--text-dim);
+    background:transparent;
+    border:none;
+    border-radius:7px;
+    cursor:pointer;
+    font-family:var(--sans);
+    transition:background 0.18s ease, color 0.18s ease;
+    letter-spacing:0.01em;
+  }
+
+  .tab.active{
+    background:var(--accent);
+    color:#06211E;
+  }
+
+  .tab:not(.active):hover{
+    color:var(--text);
+    background:var(--border-soft);
+  }
+
+  /* ---------- Panel ---------- */
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:28px;
+    margin-bottom:20px;
+    position:relative;
+    overflow:hidden;
+  }
+
+  .panel-label{
+    font-family:var(--mono);
+    font-size:10.5px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+    margin-bottom:18px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  .panel-label .hint{
+    color:var(--text-faint);
+    font-weight:400;
+    text-transform:none;
+    letter-spacing:0;
+  }
+
+  /* ---------- Converter rows ---------- */
+  .conv-row{
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    gap:14px;
+    align-items:center;
+  }
+
+  @media (max-width:640px){
+    .conv-row{
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+    .swap-btn{
+      justify-self:center;
+      transform:rotate(90deg);
+    }
+  }
+
+  .field{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px 18px;
+    transition:border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .field:focus-within{
+    border-color:var(--accent-dim);
+    box-shadow:0 0 0 3px var(--accent-glow);
+  }
+
+  .field-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+  }
+
+  .field-top label{
+    font-size:11px;
+    color:var(--text-faint);
+    font-family:var(--mono);
+    letter-spacing:0.04em;
+  }
+
+  .field input[type="number"]{
+    width:100%;
+    background:transparent;
+    border:none;
+    outline:none;
+    color:var(--text);
+    font-family:var(--mono);
+    font-size:26px;
+    font-weight:600;
+    letter-spacing:0.01em;
+    min-width:0;
+  }
+
+  .field input[type="number"]::-webkit-outer-spin-button,
+  .field input[type="number"]::-webkit-inner-spin-button{
+    -webkit-appearance:none;
+    margin:0;
+  }
+
+  .field input[type="number"]{
+    -moz-appearance:textfield;
+  }
+
+  select{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-family:var(--mono);
+    font-size:12.5px;
+    font-weight:500;
+    padding:7px 10px;
+    border-radius:8px;
+    cursor:pointer;
+    outline:none;
+    appearance:none;
+    -webkit-appearance:none;
+    background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='%237C8B9A' d='M6 8L1.5 3.5h9z'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 8px center;
+    padding-right:26px;
+    transition:border-color 0.15s ease;
+  }
+
+  select:hover{ border-color:var(--text-faint); }
+  select:focus{ border-color:var(--accent-dim); }
+
+  optgroup{
+    font-family:var(--sans);
+    font-style:normal;
+    color:var(--text-faint);
+    font-size:11px;
+  }
+
+  option{
+    color:var(--text);
+    background:var(--panel-2);
+    font-family:var(--mono);
+  }
+
+  .swap-btn{
+    width:38px;height:38px;
+    border-radius:50%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--accent);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:transform 0.25s cubic-bezier(.34,1.56,.64,1), border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .swap-btn:hover{
+    border-color:var(--accent-dim);
+    background:var(--accent-glow);
+  }
+
+  .swap-btn.spin{ transform:rotate(180deg); }
+  @media (max-width:640px){
+    .swap-btn.spin{ transform:rotate(270deg); }
+  }
+
+  .swap-btn svg{ width:16px;height:16px; }
+
+  /* ---------- Signal stream (signature element) ---------- */
+  .stream{
+    height:26px;
+    margin:20px 0 4px;
+    position:relative;
+    overflow:hidden;
+    border-radius:4px;
+  }
+
+  .stream::before{
+    content:'';
+    position:absolute;
+    top:50%; left:0; right:0;
+    height:1px;
+    background:var(--border);
+    transform:translateY(-50%);
+  }
+
+  .pulse{
+    position:absolute;
+    top:50%;
+    width:5px; height:5px;
+    background:var(--accent);
+    border-radius:50%;
+    transform:translateY(-50%);
+    box-shadow:0 0 8px 1px var(--accent-glow);
+    animation-name:travel;
+    animation-timing-function:linear;
+    animation-iteration-count:infinite;
+  }
+
+  @keyframes travel{
+    from{ left:-2%; opacity:0; }
+    5%{ opacity:1; }
+    95%{ opacity:1; }
+    to{ left:102%; opacity:0; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .pulse{ animation:none; opacity:0; }
+  }
+
+  /* ---------- Result strip ---------- */
+  .result-strip{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:22px;
+  }
+
+  .chip{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--text-dim);
+    background:var(--panel-2);
+    border:1px solid var(--border-soft);
+    padding:8px 12px;
+    border-radius:8px;
+    display:flex;
+    gap:6px;
+  }
+
+  .chip b{
+    color:var(--text);
+    font-weight:600;
+  }
+
+  /* ---------- Reference table ---------- */
+  .ref-table{
+    width:100%;
+    border-collapse:collapse;
+    font-family:var(--mono);
+    font-size:12.5px;
+  }
+
+  .ref-table th{
+    text-align:left;
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+    font-family:var(--sans);
+    font-weight:600;
+    padding:0 10px 10px;
+    border-bottom:1px solid var(--border);
+  }
+
+  .ref-table td{
+    padding:9px 10px;
+    color:var(--text-dim);
+    border-bottom:1px solid var(--border-soft);
+  }
+
+  .ref-table tr:last-child td{ border-bottom:none; }
+
+  .ref-table td:first-child{ color:var(--text); font-weight:500; }
+  .ref-table tr:hover td{ color:var(--text); }
+
+  /* ---------- Throughput calculator ---------- */
+  .tc-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-bottom:20px;
+  }
+
+  @media (max-width:640px){
+    .tc-grid{ grid-template-columns:1fr; }
+  }
+
+  .tc-result{
+    background:linear-gradient(135deg, rgba(94,234,212,0.08), rgba(94,234,212,0.02));
+    border:1px solid rgba(94,234,212,0.25);
+    border-radius:12px;
+    padding:22px;
+    text-align:center;
+  }
+
+  .tc-result .big{
+    font-family:var(--mono);
+    font-size:34px;
+    font-weight:700;
+    color:var(--accent);
+    letter-spacing:0.01em;
+    line-height:1.2;
+  }
+
+  .tc-result .sub{
+    font-size:11.5px;
+    color:var(--text-dim);
+    margin-top:6px;
+    font-family:var(--mono);
+  }
+
+  /* ---------- Footer ---------- */
+  footer{
+    text-align:center;
+    margin-top:36px;
+    color:var(--text-faint);
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.02em;
+  }
+
+  .precision-note{
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+    margin-top:16px;
+    padding:12px 14px;
+    background:rgba(251,191,36,0.06);
+    border:1px solid rgba(251,191,36,0.18);
+    border-radius:10px;
+    font-size:12px;
+    color:var(--text-dim);
+    line-height:1.5;
+  }
+
+  .precision-note .dot{
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--warn);
+    margin-top:5px;
+    flex-shrink:0;
+  }
+
+  .precision-note b{ color:var(--warn); font-weight:600; }
+
+  .hidden{ display:none !important; }
+
+  ::selection{ background:var(--accent-glow); color:var(--text); }
+
+  input:focus-visible, select:focus-visible, button:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div class="brand-text">
+        <h1>Throughput</h1>
+        <p>DATA TRANSFER &amp; SPEED CONVERTER</p>
+      </div>
+    </div>
+    <div class="clock" id="clock">—</div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="convert">Unit Convert</button>
+    <button class="tab" data-tab="time">Transfer Time</button>
+    <button class="tab" data-tab="reference">Reference</button>
+  </div>
+
+  <!-- ===================== CONVERT TAB ===================== -->
+  <section id="tab-convert">
+    <div class="panel">
+      <div class="panel-label">
+        <span>Convert</span>
+        <span class="hint" id="baseNote"></span>
+      </div>
+
+      <div class="conv-row">
+        <div class="field">
+          <div class="field-top">
+            <label>FROM</label>
+            <select id="fromUnit"></select>
+          </div>
+          <input type="number" id="fromValue" value="1" inputmode="decimal" autocomplete="off" spellcheck="false">
+        </div>
+
+        <button class="swap-btn" id="swapBtn" title="Swap units" aria-label="Swap units">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="17 1 21 5 17 9"></polyline>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+            <polyline points="7 23 3 19 7 15"></polyline>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+          </svg>
+        </button>
+
+        <div class="field">
+          <div class="field-top">
+            <label>TO</label>
+            <select id="toUnit"></select>
+          </div>
+          <input type="number" id="toValue" value="8" inputmode="decimal" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+
+      <div class="stream" id="stream"></div>
+
+      <div class="result-strip" id="quickChips"></div>
+    </div>
+
+    <div class="precision-note">
+      <div class="dot"></div>
+      <div><b>Bits vs. bytes.</b> Network and ISP speeds are usually quoted in bits per second (Mbps), while file sizes and transfer tools use bytes (MB). 1 byte = 8 bits — this is the most common source of "why is my download slower than my plan speed" confusion.</div>
+    </div>
+  </section>
+
+  <!-- ===================== TRANSFER TIME TAB ===================== -->
+  <section id="tab-time" class="hidden">
+    <div class="panel">
+      <div class="panel-label"><span>Transfer time estimator</span></div>
+
+      <div class="tc-grid">
+        <div class="field">
+          <div class="field-top">
+            <label>FILE / DATA SIZE</label>
+            <select id="tcSizeUnit"></select>
+          </div>
+          <input type="number" id="tcSize" value="10" inputmode="decimal" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <label>TRANSFER SPEED</label>
+            <select id="tcSpeedUnit"></select>
+          </div>
+          <input type="number" id="tcSpeed" value="100" inputmode="decimal" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="tc-result">
+        <div class="big" id="tcBig">—</div>
+        <div class="sub" id="tcSub">estimated time to complete</div>
+      </div>
+
+      <div class="result-strip" id="tcChips"></div>
+    </div>
+  </section>
+
+  <!-- ===================== REFERENCE TAB ===================== -->
+  <section id="tab-reference" class="hidden">
+    <div class="panel">
+      <div class="panel-label"><span>Common ISP &amp; connection speeds</span></div>
+      <table class="ref-table">
+        <thead><tr><th>Connection</th><th>Typical speed</th><th>≈ Throughput</th></tr></thead>
+        <tbody id="ispTable"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label"><span>Binary vs. decimal prefixes</span></div>
+      <table class="ref-table">
+        <thead><tr><th>Prefix</th><th>Decimal (SI)</th><th>Binary (IEC)</th></tr></thead>
+        <tbody id="prefixTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>ALL CONVERSIONS COMPUTED LOCALLY · NO DATA LEAVES YOUR BROWSER</footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ---------- Unit definitions: base unit = bits ----------
+  // Storage units (bytes-based) use 8 bits/byte (decimal) or standard IEC where noted.
+  const UNITS = [
+    // Bit-based (throughput) — decimal (network convention)
+    { id:'bps',   label:'bit/s (bps)',    group:'Bits per second', toBits:1 },
+    { id:'kbps',  label:'kilobit/s (Kbps)', group:'Bits per second', toBits:1e3 },
+    { id:'mbps',  label:'megabit/s (Mbps)', group:'Bits per second', toBits:1e6 },
+    { id:'gbps',  label:'gigabit/s (Gbps)', group:'Bits per second', toBits:1e9 },
+    { id:'tbps',  label:'terabit/s (Tbps)', group:'Bits per second', toBits:1e12 },
+
+    // Byte-based (throughput) — decimal
+    { id:'Bps',   label:'byte/s (B/s)',    group:'Bytes per second', toBits:8 },
+    { id:'KBps',  label:'kilobyte/s (KB/s)', group:'Bytes per second', toBits:8e3 },
+    { id:'MBps',  label:'megabyte/s (MB/s)', group:'Bytes per second', toBits:8e6 },
+    { id:'GBps',  label:'gigabyte/s (GB/s)', group:'Bytes per second', toBits:8e9 },
+    { id:'TBps',  label:'terabyte/s (TB/s)', group:'Bytes per second', toBits:8e12 },
+
+    // Byte-based (throughput) — binary / IEC
+    { id:'KiBps', label:'kibibyte/s (KiB/s)', group:'Bytes per second (binary)', toBits:8*1024 },
+    { id:'MiBps', label:'mebibyte/s (MiB/s)', group:'Bytes per second (binary)', toBits:8*1024**2 },
+    { id:'GiBps', label:'gibibyte/s (GiB/s)', group:'Bytes per second (binary)', toBits:8*1024**3 },
+
+    // Data size — bits (decimal)
+    { id:'bit',   label:'bit',        group:'Data size (bits)', toBits:1 },
+    { id:'kbit',  label:'kilobit (Kb)',  group:'Data size (bits)', toBits:1e3 },
+    { id:'mbit',  label:'megabit (Mb)',  group:'Data size (bits)', toBits:1e6 },
+    { id:'gbit',  label:'gigabit (Gb)',  group:'Data size (bits)', toBits:1e9 },
+
+    // Data size — bytes (decimal, storage/marketing convention)
+    { id:'byte',  label:'byte (B)',    group:'Data size (bytes)', toBits:8 },
+    { id:'KB',    label:'kilobyte (KB)', group:'Data size (bytes)', toBits:8e3 },
+    { id:'MB',    label:'megabyte (MB)', group:'Data size (bytes)', toBits:8e6 },
+    { id:'GB',    label:'gigabyte (GB)', group:'Data size (bytes)', toBits:8e9 },
+    { id:'TB',    label:'terabyte (TB)', group:'Data size (bytes)', toBits:8e12 },
+
+    // Data size — bytes (binary / IEC, OS convention)
+    { id:'KiB',   label:'kibibyte (KiB)', group:'Data size (bytes, binary)', toBits:8*1024 },
+    { id:'MiB',   label:'mebibyte (MiB)', group:'Data size (bytes, binary)', toBits:8*1024**2 },
+    { id:'GiB',   label:'gibibyte (GiB)', group:'Data size (bytes, binary)', toBits:8*1024**3 },
+    { id:'TiB',   label:'tebibyte (TiB)', group:'Data size (bytes, binary)', toBits:8*1024**4 },
+  ];
+
+  const byId = id => UNITS.find(u => u.id === id);
+
+  function buildOptions(select, selectedId, filterFn){
+    const groups = {};
+    UNITS.filter(filterFn || (()=>true)).forEach(u => {
+      groups[u.group] = groups[u.group] || [];
+      groups[u.group].push(u);
+    });
+    select.innerHTML = '';
+    Object.keys(groups).forEach(g => {
+      const og = document.createElement('optgroup');
+      og.label = g;
+      groups[g].forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id; opt.textContent = u.label;
+        if(u.id === selectedId) opt.selected = true;
+        og.appendChild(opt);
+      });
+      select.appendChild(og);
+    });
+  }
+
+  function fmt(n){
+    if(!isFinite(n)) return '—';
+    if(n === 0) return '0';
+    const abs = Math.abs(n);
+    if(abs >= 1e12 || (abs < 0.0001 && abs > 0)) return n.toExponential(4).replace('e+','e');
+    // trim to sensible precision
+    let decimals = abs >= 1000 ? 2 : abs >= 1 ? 4 : 6;
+    let s = n.toFixed(decimals);
+    s = s.replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,'');
+    return s;
+  }
+
+  // ================= CONVERT TAB =================
+  const fromUnitSel = document.getElementById('fromUnit');
+  const toUnitSel   = document.getElementById('toUnit');
+  const fromValue   = document.getElementById('fromValue');
+  const toValue     = document.getElementById('toValue');
+  const swapBtn     = document.getElementById('swapBtn');
+  const streamEl    = document.getElementById('stream');
+  const quickChips  = document.getElementById('quickChips');
+  const baseNote    = document.getElementById('baseNote');
+
+  buildOptions(fromUnitSel, 'mbps');
+  buildOptions(toUnitSel, 'MBps');
+
+  let lastEdited = 'from';
+
+  function renderStream(ratio){
+    streamEl.innerHTML = '';
+    const count = 5;
+    // speed reflects magnitude of ratio (visual flavor, clamped)
+    let dur = 2.6;
+    if(ratio > 0){
+      const mag = Math.log10(Math.max(ratio, 1e-6));
+      dur = Math.max(0.7, Math.min(3.2, 2.2 - mag*0.25));
+    }
+    for(let i=0;i<count;i++){
+      const p = document.createElement('div');
+      p.className = 'pulse';
+      p.style.animationDuration = dur + 's';
+      p.style.animationDelay = (i * dur/count) + 's';
+      streamEl.appendChild(p);
+    }
+  }
+
+  function quickCompare(bitsPerUnit){
+    // show the value expressed in the 4 most relevant sibling units
+    const highlights = ['mbps','MBps','gbps','GBps'];
+    quickChips.innerHTML = '';
+    highlights.forEach(id => {
+      const u = byId(id);
+      const val = bitsPerUnit / u.toBits;
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.innerHTML = '<span>'+u.id+'</span><b>'+fmt(val)+'</b>';
+      quickChips.appendChild(chip);
+    });
+  }
+
+  function convert(){
+    const fu = byId(fromUnitSel.value);
+    const tu = byId(toUnitSel.value);
+    if(lastEdited === 'from'){
+      const v = parseFloat(fromValue.value);
+      if(isNaN(v)){ toValue.value=''; return; }
+      const bits = v * fu.toBits;
+      toValue.value = fmt(bits / tu.toBits);
+      renderStream(fu.toBits / tu.toBits);
+      quickCompare(bits);
+    } else {
+      const v = parseFloat(toValue.value);
+      if(isNaN(v)){ fromValue.value=''; return; }
+      const bits = v * tu.toBits;
+      fromValue.value = fmt(bits / fu.toBits);
+      renderStream(tu.toBits / fu.toBits);
+      quickCompare(bits);
+    }
+    const sameFamily = fu.group.includes('Bytes per second') || fu.group.includes('Bits per second');
+    baseNote.textContent = sameFamily ? 'throughput' : 'data size';
+  }
+
+  fromValue.addEventListener('input', ()=>{ lastEdited='from'; convert(); });
+  toValue.addEventListener('input', ()=>{ lastEdited='to'; convert(); });
+  fromUnitSel.addEventListener('change', convert);
+  toUnitSel.addEventListener('change', convert);
+
+  swapBtn.addEventListener('click', ()=>{
+    const f = fromUnitSel.value, t = toUnitSel.value;
+    fromUnitSel.value = t; toUnitSel.value = f;
+    swapBtn.classList.add('spin');
+    setTimeout(()=>swapBtn.classList.remove('spin'), 260);
+    lastEdited = 'from';
+    convert();
+  });
+
+  convert();
+
+  // ================= TRANSFER TIME TAB =================
+  const tcSize = document.getElementById('tcSize');
+  const tcSpeed = document.getElementById('tcSpeed');
+  const tcSizeUnit = document.getElementById('tcSizeUnit');
+  const tcSpeedUnit = document.getElementById('tcSpeedUnit');
+  const tcBig = document.getElementById('tcBig');
+  const tcSub = document.getElementById('tcSub');
+  const tcChips = document.getElementById('tcChips');
+
+  buildOptions(tcSizeUnit, 'GB', u => u.group.startsWith('Data size'));
+  buildOptions(tcSpeedUnit, 'mbps', u => u.group.includes('per second'));
+
+  function formatDuration(seconds){
+    if(!isFinite(seconds) || seconds < 0) return '—';
+    if(seconds < 0.001) return (seconds*1000).toFixed(2)+' ms';
+    if(seconds < 1) return (seconds*1000).toFixed(0)+' ms';
+    if(seconds < 60) return seconds.toFixed(2)+' sec';
+    if(seconds < 3600){
+      const m = Math.floor(seconds/60), s = Math.round(seconds%60);
+      return m+'m '+s+'s';
+    }
+    if(seconds < 86400){
+      const h = Math.floor(seconds/3600), m = Math.round((seconds%3600)/60);
+      return h+'h '+m+'m';
+    }
+    const d = Math.floor(seconds/86400), h = Math.round((seconds%86400)/3600);
+    return d+'d '+h+'h';
+  }
+
+  function calcTime(){
+    const sizeVal = parseFloat(tcSize.value);
+    const speedVal = parseFloat(tcSpeed.value);
+    const sizeUnit = byId(tcSizeUnit.value);
+    const speedUnit = byId(tcSpeedUnit.value);
+
+    if(isNaN(sizeVal) || isNaN(speedVal) || speedVal <= 0){
+      tcBig.textContent = '—';
+      tcChips.innerHTML = '';
+      return;
+    }
+
+    const totalBits = sizeVal * sizeUnit.toBits;
+    const bitsPerSecond = speedVal * speedUnit.toBits;
+    const seconds = totalBits / bitsPerSecond;
+
+    tcBig.textContent = formatDuration(seconds);
+    tcSub.textContent = fmt(sizeVal)+' '+sizeUnit.id+' at '+fmt(speedVal)+' '+speedUnit.id;
+
+    tcChips.innerHTML = '';
+    const scenarios = [1,10,100];
+    scenarios.forEach(mult => {
+      const chip = document.createElement('div');
+      chip.className='chip';
+      chip.innerHTML = '<span>×'+mult+' files</span><b>'+formatDuration(seconds*mult)+'</b>';
+      tcChips.appendChild(chip);
+    });
+  }
+
+  [tcSize, tcSpeed, tcSizeUnit, tcSpeedUnit].forEach(el => el.addEventListener('input', calcTime));
+  calcTime();
+
+  // ================= REFERENCE TAB =================
+  const isp = [
+    ['Dial-up (56K)', '56 Kbps', '~7 KB/s'],
+    ['ADSL basic', '10 Mbps', '~1.25 MB/s'],
+    ['Cable / VDSL', '100 Mbps', '~12.5 MB/s'],
+    ['Fiber (common)', '300 Mbps', '~37.5 MB/s'],
+    ['Fiber (fast)', '1 Gbps', '~125 MB/s'],
+    ['Fiber (multi-gig)', '10 Gbps', '~1.25 GB/s'],
+    ['Wi-Fi 5 (802.11ac)', '866 Mbps', '~108 MB/s'],
+    ['Wi-Fi 6 (802.11ax)', '1.2 Gbps', '~150 MB/s'],
+    ['USB 2.0', '480 Mbps', '~60 MB/s'],
+    ['USB 3.0', '5 Gbps', '~625 MB/s'],
+    ['USB 3.2 Gen 2x2', '20 Gbps', '~2.5 GB/s'],
+    ['Thunderbolt 3/4', '40 Gbps', '~5 GB/s'],
+    ['Gigabit Ethernet', '1 Gbps', '~125 MB/s'],
+    ['10G Ethernet', '10 Gbps', '~1.25 GB/s'],
+  ];
+  const ispTable = document.getElementById('ispTable');
+  isp.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+row[0]+'</td><td>'+row[1]+'</td><td>'+row[2]+'</td>';
+    ispTable.appendChild(tr);
+  });
+
+  const prefixes = [
+    ['kilo (k)', '10³ = 1,000', 'kibi (Ki) = 2¹⁰ = 1,024'],
+    ['mega (M)', '10⁶ = 1,000,000', 'mebi (Mi) = 2²⁰ = 1,048,576'],
+    ['giga (G)', '10⁹', 'gibi (Gi) = 2³⁰'],
+    ['tera (T)', '10¹²', 'tebi (Ti) = 2⁴⁰'],
+  ];
+  const prefixTable = document.getElementById('prefixTable');
+  prefixes.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+row[0]+'</td><td>'+row[1]+'</td><td>'+row[2]+'</td>';
+    prefixTable.appendChild(tr);
+  });
+
+  // ================= TABS =================
+  const tabs = document.querySelectorAll('.tab');
+  const sections = {
+    convert: document.getElementById('tab-convert'),
+    time: document.getElementById('tab-time'),
+    reference: document.getElementById('tab-reference'),
+  };
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      Object.keys(sections).forEach(k => sections[k].classList.add('hidden'));
+      sections[tab.dataset.tab].classList.remove('hidden');
+    });
+  });
+
+  // ================= CLOCK =================
+  const clockEl = document.getElementById('clock');
+  function tick(){
+    const now = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    clockEl.textContent = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds())+' LOCAL';
+  }
+  tick();
+  setInterval(tick, 1000);
+
+})();
+</script>
+
+</body>
+</html>
